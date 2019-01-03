@@ -3,7 +3,7 @@ import numpy as np
 
 
 Culon = ROOT.TF1("Culon", "    [0]*[1]*14.4/x*[2] ")
-dCulon = ROOT.TF1("dCulon", "  [0]*[1]*14.4/x* (  [2]/[3] - [4]/x )")
+dCulon = ROOT.TF1("dCulon", "  [0]*[1]*14.4/x* (  [2]/[3] - [4]/x )  ")
 
 fEcran = ROOT.TF1("fEcran", "[0]*exp(-[1]*x) + [2]*exp(-[3]*x) + [4]*exp(-[5]*x) + [6]*exp(-[7]*x)")
 dfEcran = ROOT.TF1("dfEcran", "-([0]*[1]*exp(-[1]*x) + [2]*[3]*exp(-[3]*x) + [4]*[5]*exp(-[5]*x) + [6]*[7]*exp(-[7]*x) )")
@@ -12,14 +12,16 @@ f = ROOT.TF1("f", "1-[0]/[1]-([2]/x)*([2]/x) ")
 fstrih = ROOT.TF1("fstrih", "-[0]/[1]+2*[2]*[2]/(x*x*x)")
 
 ecran_params = [0.1818, 3.2, 0.5099, 0.9432, 0.2802, 0.4029, 0.0282, 0.2016]
-map(lambda iparam: fEcran.SetParameter(iparam, ecran_params[iparam]), range(8))
-map(lambda iparam:dfEcran.SetParameter(iparam, ecran_params[iparam]), range(8))
+for iparam in range(8):
+    dfEcran.SetParameter(iparam, ecran_params[iparam])
+    fEcran.SetParameter(iparam, ecran_params[iparam])
 
 
 def sintheta(Z1, Z2, M1, M2, E, p, method=0):
+
     a = 0.88534 * 0.529 / (pow(Z1, 0.23) + pow(Z2, 0.23))
     a = a * (-0.003 * (pow(Z1, 0.5) + pow(Z2, 0.5)) + 0.98)
-    if p == 0: p = 0.0001
+    if p == 0: p = 0.00001
     B = p / a
     Ec = E / (1 + M1 / M2)
     rm = a
@@ -47,9 +49,8 @@ def sintheta(Z1, Z2, M1, M2, E, p, method=0):
         f.SetParameter(0, Culon(rm))
         fstrih.SetParameter(0, dCulon(rm))
         rm = rm-f(rm)/fstrih(rm)
-    print(rm)
-    ro = -2 * (Ec - Culon(rm)) / (dCulon(rm)+1)
 
+    ro = -2 * (Ec - Culon(rm)) / dCulon(rm)
     Rm = rm / a
     Rc = ro / a
     Esm = M2 / (M1 + M2) * E

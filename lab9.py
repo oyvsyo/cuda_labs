@@ -2,10 +2,20 @@ from __future__ import division
 import numpy as np
 import ROOT
 import lab4
+from matplotlib import pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 
 Na = 6.02e6
 
+def axisEqual3D(ax):
+    extents = np.array([getattr(ax, 'get_{}lim'.format(dim))() for dim in 'xyz'])
+    sz = extents[:,1] - extents[:,0]
+    centers = np.mean(extents, axis=1)
+    maxsize = max(abs(sz))
+    r = maxsize/2
+    for ctr, dim in zip(centers, 'xyz'):
+        getattr(ax, 'set_{}lim'.format(dim))(ctr - r, ctr + r)
 
 def length(x1, y1, z1, x2, y2, z2):
     return (x2-x1)**2+(y2-y1)**2+(z2-z1)**2
@@ -25,7 +35,7 @@ def nap_cos(omega0, theta, phi):
 
 class Atom(object):
     """Class for Atom"""
-    def __init__(self, Z=1., M=2., name="-"):
+    def __init__(self, Z=1., M=2., name="d"):
         self.Z = Z
         self.M = M
         self.name = name
@@ -62,7 +72,7 @@ class Environ:
     """Class for enviroument"""
     def __init__(self, molequla, ro=1.):
         self.molequla = molequla
-        self.n0s = list(map(lambda i: ro*Na/molequla.atoms[i].M*molequla.weights[i], list(range(len(molequla.atoms)))))
+        self.n0s = list(map(lambda i: ro*Na/molequla.atoms[i].M*molequla.weights[i], range(len(molequla.atoms))))
         self.Ls = list(map(lambda n0: n0 ** (-1. / 3), self.n0s))
         self.ro = ro
 
@@ -115,8 +125,8 @@ T = Atom(1., 3., name="T")
 
 d = Particle(M=2., Z=1., E=110, name="d")
 alpha = Particle(Z=2, M=4., E=100, name="alpha")
-pLi = Particle(Z=3., M=6.94, E=90, name="Li")
-p = Particle(Z=1., M=1., E=70, name="p")
+pLi = Particle(Z=3., M=6.94, E=390, name="Li")
+p = Particle(Z=1., M=1., E=20, name="p")
 t = Particle(Z=1., M=3., E=200, name="t")
 
 CH2 = Molequla([C, H], [1, 2])
@@ -129,7 +139,7 @@ LiF = Molequla([Li, F], [1, 1])
 
 
 P = p
-Env = Environ(TiT2, 1.)
+Env = Environ(C12H18O7, 1.)
 
 E = P.E
 n = 100
@@ -160,45 +170,75 @@ lth = []
 # h1 = ROOT.TH1F("g", "g", 50, 0., .5)
 # map(lambda x: h1.Fill(x), lth)
 # h1.Draw()
-X, Y, Z = list(range(natoms)), list(range(natoms)), list(range((natoms)))
-graps = list(range(natoms))
-x, y, z = [], [] ,[]
-while P.E > 0:
-    index = Env.do_interact(P)
-    if type(X[index])==type(1):
-        X[index] = []
-    if type(Y[index])==type(1):
-        Y[index] = []
-    if type(Z[index])==type(1):
-        Z[index] = []
-    x += [P.X[0]]
-    y += [P.X[1]]
-    z += [P.X[2]]
-    X[index] += [P.X[0]]
-    Y[index] += [P.X[1]]
-    Z[index] += [P.X[2]]
+coordinates = []
+for n in range(30):
+    # print(f"{n}\r")
+    X, Y, Z = list(range(natoms)), list(range(natoms)), list(range(natoms))
+    graps = list(range(natoms))
+    x, y, z = [], [] ,[]
+    while P.E > 0:
+        index = Env.do_interact(P)
+        if type(X[index])==type(1):
+            X[index] = []
+        if type(Y[index])==type(1):
+            Y[index] = []
+        if type(Z[index])==type(1):
+            Z[index] = []
+        x += [P.X[0]]
+        y += [P.X[1]]
+        z += [P.X[2]]
+        X[index] += [P.X[0]]
+        Y[index] += [P.X[1]]
+        Z[index] += [P.X[2]]
+    p.E = 1+10*n
+    p.X = [0, 0, 0]
+    p.Omega = [1., 0., 0.]
+    try:
+        print(f"{max(x)}   {p.E}")
+
+    except:
+        pass
+    coordinates.append([x, y, z])
+
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
 
 
-gr = ROOT.TGraph2D(len(x), np.array(x), np.array(y), np.array(z))
-gr.SetName("line")
-gr.Draw("LINE")
-gr.GetXaxis().GetXmax()
-gr.SetTitle("GEANT4")
-leg = ROOT.TLegend(0.4, 0.6, 0.8, 0.85)
-leg.SetNColumns(natoms+1)
-leg.AddEntry(gr, P.name+"#Rightarrow"+Env.molequla.name, "s")
-for i in range(natoms):
-    if type(X[i])==type(1):
-        continue
-    graps[i] = ROOT.TGraph2D(len(X[i]), np.array(X[i]), np.array(Y[i]), np.array(Z[i]))
-    graps[i].SetMarkerColor(i+2)
-    graps[i].SetMarkerStyle(i+20)
-    graps[i].SetName(str(i))
-    graps[i].SetMarkerSize(1.0)
-    graps[i].Draw("PSAME")
-    leg.AddEntry(graps[i], Env.molequla.atoms[i].name, "p")
+max_max = -999.
+min_min = 999.
+for x, y, z in coordinates:
+    min_ = min([min(x), min(y), min(z)])
+    max_ = max([min(x), max(y), max(x)])
+    if max_ > max_max:max_max = max_
+    if min_ < min_min:min_min = min_
 
-leg.Draw()
-# gr = ROOT.TGraph2D(len(X), np.array(X), np.array(Y), np.array(Z))
+ax.set_xlim(min_min, max_max)
+ax.set_ylim(min_min, max_max/5)
+ax.set_zlim(min_min, max_max/5)
+for x, y, z in coordinates:
+    ax.plot(x, y, z)
+
+plt.show()
+# gr = ROOT.TGraph2D(len(x), np.array(x), np.array(y), np.array(z))
+# gr.SetName("line")
 # gr.Draw("LINE")
-ROOT.gPad.Update()
+# gr.GetXaxis().GetXmax()
+# gr.SetTitle("GEANT4")
+# leg = ROOT.TLegend(0.4, 0.6, 0.8, 0.85)
+# leg.SetNColumns(natoms+1)
+# leg.AddEntry(gr, P.name+"#Rightarrow"+Env.molequla.name, "s")
+# for i in range(natoms):
+#     if type(X[i])==type(1):
+#         continue
+#     graps[i] = ROOT.TGraph2D(len(X[i]), np.array(X[i]), np.array(Y[i]), np.array(Z[i]))
+#     graps[i].SetMarkerColor(i+2)
+#     graps[i].SetMarkerStyle(i+20)
+#     graps[i].SetName(str(i))
+#     graps[i].SetMarkerSize(1.0)
+#     graps[i].Draw("PSAME")
+#     leg.AddEntry(graps[i], Env.molequla.atoms[i].name, "p")
+#
+# leg.Draw()
+# # gr = ROOT.TGraph2D(len(X), np.array(X), np.array(Y), np.array(Z))
+# # gr.Draw("LINE")
+# ROOT.gPad.Update()
