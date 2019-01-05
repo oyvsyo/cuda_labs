@@ -7,6 +7,8 @@ Also there is an notebook extension for C++ code in cell (not memmory sharing be
 ### curand_curand.ipynb
 Time comparison between uniform random number generation on CPU and GPU
 [Google colab notebook](https://colab.research.google.com/drive/17J1jVTBmZ7ePZfyD4XPGSZ96-fS0V529)
+> Random number generation on CUDA took more time cause of thread switch time
+ 
 ![alt text](https://imgur.com/xYA0PRQ.png "uniform random generation time")
 ### GEANT_on_GPU.ipynb
 Time comparison between particle penetration simulation on CPU and GPU
